@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"math"
 	"math/cmplx"
 	"net/http"
 
@@ -10,7 +9,7 @@ import (
 	"github.com/mjibson/go-dsp/fft"
 )
 
-var fft_values = make(chan [32]float64)
+var fft_values = make(chan [512]float64)
 
 func fftanalyzer(values chan []int32) {
 	for {
@@ -20,16 +19,28 @@ func fftanalyzer(values chan []int32) {
 			buf = append(buf, float64(a))
 		}
 		buffer := fft.FFTReal(buf)
-		var fft_buf [32]float64
-		for i := 0; i <= 62; i += 2 {
+		var fft_buf [512]float64
+		for i := 0; i <= 510; i += 2 {
 			val := buffer[i] + buffer[i+1]
-			fft_buf[i/2] = (cmplx.Abs(val) * math.Pow(10, -8))
+			fft_buf[i/2] = cmplx.Abs(val)
+			if fft_buf[i/2] < 0 {
+				log.Fatalln("How the fuck can I can a negative abs-value", i/2, buffer)
+			}
 		}
 		fft_values <- fft_buf
 	}
 }
 
-var upgrader = websocket.Upgrader{} // use default options
+var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }} // use default options
+
+type BarData struct {
+	Values []ValuePair `json:"values"`
+}
+
+type ValuePair struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
 
 func fftHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
@@ -39,7 +50,18 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close()
 	for {
 		values := <-fft_values
-		if err := c.WriteJSON(values); err != nil {
+		var bar BarData
+		for i, v := range values[5:250] {
+			if i == 0 {
+				v = 0
+			}
+			if v < 0 {
+				log.Println("Negative value..", i, v)
+			}
+			bar.Values = append(bar.Values, ValuePair{i, int(v) % 100})
+		}
+		bs := []BarData{bar}
+		if err := c.WriteJSON(bs); err != nil {
 			log.Fatalln(err)
 		}
 	}

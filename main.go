@@ -5,9 +5,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/Orion90/portaudio"
 )
+
+var writetime = time.Time{}
 
 func main() {
 	http.HandleFunc("/fft", fftHandler)
@@ -18,9 +21,9 @@ func main() {
 
 	portaudio.Initialize()
 	defer portaudio.Terminate()
-	in := make([]int32, 64)
+	in := make([]int32, 1024)
 	stream, err := portaudio.OpenDefaultStream(2, 0, 44100, len(in), in)
-	fft_chan := make(chan []int32, 64)
+	fft_chan := make(chan []int32)
 	go fftanalyzer(fft_chan)
 	if err != nil {
 		panic(err)
