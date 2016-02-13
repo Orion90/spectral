@@ -2,18 +2,24 @@ package main
 
 import (
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"log"
-	"math"
-	"math/cmplx"
+	"net/http"
 	"os"
 	"os/signal"
 
 	"github.com/Orion90/portaudio"
-	"github.com/mjibson/go-dsp/fft"
+)
+
+var (
+	o = flag.String("o", "", "Save to disk as file")
 )
 
 func main() {
+	http.HandleFunc("/fft", fftHandler)
+	http.Handle("/", http.FileServer(http.Dir(".")))
+	go http.ListenAndServe(":8080", nil)
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 	f, err := os.Create("test.aiff")
@@ -63,8 +69,9 @@ func main() {
 	portaudio.Initialize()
 	defer portaudio.Terminate()
 	in := make([]int32, 64)
-	fmt.Println(len(in))
 	stream, err := portaudio.OpenDefaultStream(2, 0, 44100, len(in), in)
+	fft_chan := make(chan []int32, 64)
+	go fftanalyzer(fft_chan)
 	if err != nil {
 		panic(err)
 	}
@@ -74,11 +81,12 @@ func main() {
 	}
 	for {
 		if err := stream.Read(); err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 		if err := binary.Write(f, binary.BigEndian, in); err != nil {
 			panic(err)
 		}
+		fft_chan <- in
 		nSamples += len(in)
 		select {
 		case <-sig:
@@ -87,19 +95,6 @@ func main() {
 		}
 	}
 	chk(stream.Stop())
-}
-func fftanalyzer(in []int32) {
-	for {
-		var buf []float64
-		for _, a := range in {
-			buf = append(buf, float64(a))
-		}
-		buffer := fft.FFTReal(buf)
-		for i := 0; i <= 62; i += 2 {
-			val := buffer[i] + buffer[i+1]
-			fmt.Println(cmplx.Abs(val) * math.Pow(10, -8))
-		}
-	}
 }
 func chk(err error) {
 	if err != nil {
