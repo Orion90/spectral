@@ -50,18 +50,11 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close()
 	for {
 		values := <-fft_values
-		var bar BarData
-		for i, v := range values[5:250] {
-			if i == 0 {
-				v = 0
-			}
-			if v < 0 {
-				log.Println("Negative value..", i, v)
-			}
-			bar.Values = append(bar.Values, ValuePair{i, int(v) % 100})
+		var send []int32
+		for _, v := range values {
+			send = append(send, int32(v)%100)
 		}
-		bs := []BarData{bar}
-		if err := c.WriteJSON(bs); err != nil {
+		if err := c.WriteJSON(send); err != nil {
 			log.Fatalln(err)
 		}
 	}
