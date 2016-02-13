@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"math/cmplx"
 	"net/http"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/mjibson/go-dsp/fft"
 )
 
-var fft_values = make(chan [512]float64)
+var fft_values = make(chan [1024]float64)
 
 func fftanalyzer(values chan []int32) {
 	for {
@@ -18,9 +19,12 @@ func fftanalyzer(values chan []int32) {
 		for _, a := range in {
 			buf = append(buf, float64(a))
 		}
+		for k, b := range buf {
+			buf[k] = b * 0.5 * (1.0 - math.Cos(2.0*math.Pi*float64(k)/(float64(len(buf))-1.0)))
+		}
 		buffer := fft.FFTReal(buf)
-		var fft_buf [512]float64
-		for i := 0; i <= 510; i += 2 {
+		var fft_buf [1024]float64
+		for i := 0; i <= 1022; i += 2 {
 			val := buffer[i] + buffer[i+1]
 			fft_buf[i/2] = cmplx.Abs(val)
 			if fft_buf[i/2] < 0 {
@@ -51,7 +55,7 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		values := <-fft_values
 		var bar BarData
-		for i, v := range values[5:250] {
+		for i, v := range values[5:1000] {
 			if i == 0 {
 				v = 0
 			}
