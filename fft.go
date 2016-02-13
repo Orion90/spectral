@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"math/cmplx"
 	"net/http"
 
@@ -9,25 +10,26 @@ import (
 	"github.com/mjibson/go-dsp/fft"
 )
 
-var fft_values = make(chan [512]float64)
+var fft_values = make(chan []float64)
 
 func fftanalyzer(values chan []int32) {
 	for {
 		in := <-values
 		var buf []float64
-		for _, a := range in {
-			buf = append(buf, float64(a))
+		for k := 0; k <= len(in)-2; k++ {
+			v1 := float64(in[k]) * 0.5 * (1.0 - math.Cos(2.0*math.Pi*float64(k)/(float64(len(in))-1.0)))
+			v2 := 0.0 //float64(in[k+1]) * 0.5 * (1.0 - math.Cos(2.0*math.Pi*float64(k)/(float64(len(in))-1.0)))
+			buf = append(buf, v1+v2)
 		}
 		buffer := fft.FFTReal(buf)
-		var fft_buf [512]float64
-		for i := 0; i <= 510; i += 2 {
-			val := buffer[i] + buffer[i+1]
-			fft_buf[i/2] = cmplx.Abs(val)
-			if fft_buf[i/2] < 0 {
+		for i, val := range buffer {
+
+			buf[i] = cmplx.Abs(val)
+			if buf[i] < 0 {
 				log.Fatalln("How the fuck can I can a negative abs-value", i/2, buffer)
 			}
 		}
-		fft_values <- fft_buf
+		fft_values <- buf
 	}
 }
 
