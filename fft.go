@@ -48,6 +48,14 @@ type ValuePair struct {
 	Y int `json:"y"`
 }
 
+func avgInt32(vals []int) int {
+	sum := 0
+	for _, v := range vals {
+		sum += v
+	}
+	return sum / len(vals)
+}
+
 func fftHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -61,8 +69,8 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 		bs := []BarData{
 			BarData{},
 		}
-		for i, k := range values[5:505] {
-			bs[0].Values = append(bs[0].Values, ValuePair{i, k})
+		for i, _ := range values[0:64] {
+			bs[0].Values = append(bs[0].Values, ValuePair{i, avgInt32(values[i*4 : (i*4 + 4)])})
 		}
 		if err := c.WriteJSON(bs); err != nil {
 			log.Fatalln(err)
