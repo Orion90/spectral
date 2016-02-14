@@ -1,16 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"math/cmplx"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/mjibson/go-dsp/fft"
 )
 
-var fft_values = make(chan []float64)
+var fft_values = make(chan []int, 1024)
 
 func fftanalyzer(values chan []int32) {
 	for {
@@ -29,7 +31,11 @@ func fftanalyzer(values chan []int32) {
 				log.Fatalln("How the fuck can I can a negative abs-value", i/2, buffer)
 			}
 		}
-		fft_values <- buf
+		var send []int
+		for _, v := range buf {
+			send = append(send, int(v)%100)
+		}
+		fft_values <- send
 	}
 }
 
@@ -51,13 +57,11 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 	for {
+		now := time.Now()
+		var a []byte
+		c.ReadJSON(&a)
 		values := <-fft_values
-		var send []int32
-		for _, v := range values {
-			send = append(send, int32(v)%100)
-		}
-		if err := c.WriteJSON(send); err != nil {
-			log.Fatalln(err)
-		}
+		c.WriteJSON(values)
+		fmt.Println(time.Since(now))
 	}
 }

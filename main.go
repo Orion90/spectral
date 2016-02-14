@@ -21,7 +21,7 @@ func main() {
 
 	portaudio.Initialize()
 	defer portaudio.Terminate()
-	in := make([]int32, 2048)
+	in := make([]int32, 1024)
 	stream, err := portaudio.OpenDefaultStream(2, 0, 44100, len(in), in)
 	fft_chan := make(chan []int32)
 	go fftanalyzer(fft_chan)
