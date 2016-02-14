@@ -23,7 +23,7 @@ func main() {
 	defer portaudio.Terminate()
 	in := make([]int32, 1024)
 	stream, err := portaudio.OpenDefaultStream(2, 0, 44100, len(in), in)
-	fft_chan := make(chan []int32)
+	fft_chan := make(chan []int32, 1024)
 	go fftanalyzer(fft_chan)
 	if err != nil {
 		panic(err)
@@ -32,11 +32,15 @@ func main() {
 	if err := stream.Start(); err != nil {
 		panic(err)
 	}
+	go func() {
+		for {
+			fft_chan <- in
+		}
+	}()
 	for {
 		if err := stream.Read(); err != nil {
 			fmt.Println(err)
 		}
-		fft_chan <- in
 		select {
 		case <-sig:
 			return
