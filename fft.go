@@ -72,8 +72,6 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 		for i, _ := range values[0:64] {
 			bs[0].Values = append(bs[0].Values, ValuePair{i, avgInt32(values[i*4 : (i*4 + 4)])})
 		}
-		if err := c.WriteJSON(bs); err != nil {
-			log.Fatalln(err)
-		}
+		c.WriteJSON(bs)
 	}
 }
