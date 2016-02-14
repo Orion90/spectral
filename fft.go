@@ -18,16 +18,12 @@ func fftanalyzer(values chan []int32) {
 		var buf []float64
 		for k := 0; k <= len(in)-2; k += 2 {
 			v1 := float64(in[k]) * 0.5 * (1.0 - math.Cos(2.0*math.Pi*float64(k)/(float64(len(in))-1.0)))
-			v2 := 0.0 //float64(in[k+1]) * 0.5 * (1.0 - math.Cos(2.0*math.Pi*float64(k)/(float64(len(in))-1.0)))
+			v2 := float64(in[k+1]) * 0.5 * (1.0 - math.Cos(2.0*math.Pi*float64(k)/(float64(len(in))-1.0)))
 			buf = append(buf, v1+v2)
 		}
 		buffer := fft.FFTReal(buf)
 		for i, val := range buffer {
-
 			buf[i] = cmplx.Abs(val)
-			if buf[i] < 0 {
-				log.Fatalln("How the fuck can I can a negative abs-value", i/2, buffer)
-			}
 		}
 		var send [512]int
 		for h, v := range buf {
@@ -69,7 +65,7 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 		bs := []BarData{
 			BarData{},
 		}
-		for i, _ := range values[0:64] {
+		for i, _ := range values[2:66] {
 			bs[0].Values = append(bs[0].Values, ValuePair{i, avgInt32(values[i*4 : (i*4 + 4)])})
 		}
 		c.WriteJSON(bs)
