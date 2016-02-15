@@ -74,7 +74,7 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 			BarData{},
 		}
 		for i, _ := range values[0:64] {
-			bs[0].Values = append(bs[0].Values, ValuePair{i * 8, avgInt32(values[i*8 : i*8+8])})
+			bs[0].Values = append(bs[0].Values, ValuePair{i * 4, avgInt32(values[i*4 : i*4+4])})
 		}
 		c.WriteJSON(bs)
 	}
