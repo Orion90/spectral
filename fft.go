@@ -1,16 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"math/cmplx"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/mjibson/go-dsp/fft"
 )
 
-var fft_values = make(chan [512]int)
+var fft_values = make(chan [1024]int)
 
 func fftanalyzer(values chan []int32) {
 	for {
@@ -25,7 +27,7 @@ func fftanalyzer(values chan []int32) {
 		for i, val := range buffer {
 			buf[i] = cmplx.Abs(val)
 		}
-		var send [512]int
+		var send [1024]int
 		for h, v := range buf {
 			send[h] = int(v) % 100
 		}
@@ -57,16 +59,22 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	t := make(chan time.Duration)
+	go func() {
+		for {
+			a := <-t
+			fmt.Println(a)
+		}
+	}()
 	defer c.Close()
 	for {
-		var a []byte
-		c.ReadJSON(&a)
+		c.ReadMessage()
 		values := <-fft_values
 		bs := []BarData{
 			BarData{},
 		}
-		for i, _ := range values[2:66] {
-			bs[0].Values = append(bs[0].Values, ValuePair{i, avgInt32(values[i*4 : (i*4 + 4)])})
+		for i, _ := range values[0:64] {
+			bs[0].Values = append(bs[0].Values, ValuePair{i * 8, avgInt32(values[i*8 : i*8+8])})
 		}
 		c.WriteJSON(bs)
 	}
