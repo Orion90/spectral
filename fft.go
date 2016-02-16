@@ -26,35 +26,35 @@ func fftanalyzer(values chan []int32) {
 			buf[i] = cmplx.Abs(val)
 		}
 		var sendBuf [64]float64
-		sendBuf[1] = avgFloat64(buf[freqToIndex(31):freqToIndex(60)])
-		sendBuf[2] = avgFloat64(buf[freqToIndex(61):freqToIndex(100)])
-		sendBuf[3] = avgFloat64(buf[freqToIndex(101):freqToIndex(150)])
-		sendBuf[4] = avgFloat64(buf[freqToIndex(151):freqToIndex(200)])
-		sendBuf[5] = avgFloat64(buf[freqToIndex(201):freqToIndex(250)])
-		sendBuf[6] = avgFloat64(buf[freqToIndex(251):freqToIndex(300)])
-		sendBuf[7] = avgFloat64(buf[freqToIndex(301):freqToIndex(350)])
-		sendBuf[8] = avgFloat64(buf[freqToIndex(351):freqToIndex(400)])
+		sendBuf[0] = fftAvg(buf[0:len(buf)-1], 0, 30)
+		sendBuf[1] = fftAvg(buf[0:len(buf)-1], 31, 60)
+		sendBuf[2] = fftAvg(buf[0:len(buf)-1], 61, 100)
+		sendBuf[3] = fftAvg(buf[0:len(buf)-1], 101, 150)
+		sendBuf[4] = fftAvg(buf[0:len(buf)-1], 151, 200)
+		sendBuf[5] = fftAvg(buf[0:len(buf)-1], 201, 250)
+		sendBuf[6] = fftAvg(buf[0:len(buf)-1], 251, 300)
+		sendBuf[7] = fftAvg(buf[0:len(buf)-1], 301, 350)
+		sendBuf[8] = fftAvg(buf[0:len(buf)-1], 351, 400)
 		for n := 9; n < 64; n++ {
-			sendBuf[n] = avgFloat64(buf[freqToIndex(351+(250*(n-9))):freqToIndex(500+(250*(n-9)))])
+			sendBuf[n] = fftAvg(buf[0:len(buf)-1], (351 + (250 * (n - 9))), (500 + (250 * (n - 9))))
 		}
 		send := make([]int64, 64)
 		x := 8.0
 		y := 3.0
-		var avg int64
 		for h, v := range sendBuf {
 			q := v * (math.Log(x) / y)
 			x = x + (x)
-			send[h] = int64(q)
-			avg += send[h]
-		}
-		avg = avg / int64(len(send))
-		for g, va := range send {
-			if va > avg {
-				send[g] = send[g] / 4
-			}
+			send[h] = int64(q) / math.MaxInt32
 		}
 		fft_values <- send
 	}
+}
+func fftAvg(values []float64, start, stop int) float64 {
+	sum := 0.0
+	for i := start; i <= stop; i++ {
+		sum += values[freqToIndex(i)]
+	}
+	return sum / float64(start-stop+1)
 }
 func freqToIndex(freq int) int {
 	return freq / (44100 / 2048)
@@ -93,7 +93,6 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 	for {
-		c.ReadMessage()
 		values := <-fft_values
 		bs := []BarData{
 			BarData{},

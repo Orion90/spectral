@@ -35,7 +35,7 @@ func main() {
 	go func() {
 		for {
 			select {
-			case <-time.After(10 * time.Millisecond):
+			case <-time.After(5 * time.Millisecond):
 				fft_chan <- in
 				break
 			}
