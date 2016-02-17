@@ -94,13 +94,7 @@ func fftHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close()
 	for {
 		values := <-fft_values
-		bs := []BarData{
-			BarData{},
-		}
-		for i, _ := range values[0:64] {
-			bs[0].Values = append(bs[0].Values, ValuePair{i, values[i]})
-		}
-		if err := c.WriteJSON(bs); err != nil {
+		if err := c.WriteJSON(values[0:64]); err != nil {
 			return
 		}
 	}
