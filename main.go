@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +13,10 @@ import (
 
 var writetime = time.Time{}
 
+func processAudio(i []int32) {
+	log.Println(i)
+
+}
 func main() {
 	flag.Parse()
 	http.HandleFunc("/fft", fftHandler)
@@ -24,7 +28,7 @@ func main() {
 	portaudio.Initialize()
 	defer portaudio.Terminate()
 	in := make([]int32, 4096)
-	stream, err := portaudio.OpenDefaultStream(2, 0, 44100, len(in), in)
+	stream, err := portaudio.OpenDefaultStream(2, 0, 44100, len(in), processAudio)
 	fft_chan := make(chan []int32, 4096)
 	go fftanalyzer(fft_chan)
 	if err != nil {
@@ -34,7 +38,7 @@ func main() {
 	if err := stream.Start(); err != nil {
 		panic(err)
 	}
-	go func() {
+	/*go func() {
 		for {
 			select {
 			case <-time.After(5 * time.Millisecond):
@@ -52,7 +56,8 @@ func main() {
 			return
 		default:
 		}
-	}
+	}*/
+	time.Sleep(time.Second)
 	chk(stream.Stop())
 }
 func chk(err error) {
