@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,6 +14,7 @@ import (
 var writetime = time.Time{}
 
 func main() {
+	flag.Parse()
 	http.HandleFunc("/fft", fftHandler)
 	http.Handle("/", http.FileServer(http.Dir(".")))
 	go http.ListenAndServe(":8080", nil)
@@ -34,7 +36,11 @@ func main() {
 	}
 	go func() {
 		for {
-			fft_chan <- in
+			select {
+			case <-time.After(5 * time.Millisecond):
+				fft_chan <- in
+				break
+			}
 		}
 	}()
 	for {
