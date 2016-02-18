@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +13,9 @@ import (
 
 var writetime = time.Time{}
 
+func init() {
+	log.SetFlags(log.Lshortfile)
+}
 func main() {
 	flag.Parse()
 	http.HandleFunc("/fft", fftHandler)
@@ -45,7 +48,7 @@ func main() {
 	}()
 	for {
 		if err := stream.Read(); err != nil {
-			fmt.Println(err)
+			panic(err)
 		}
 		select {
 		case <-sig:
